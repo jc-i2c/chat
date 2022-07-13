@@ -64,11 +64,40 @@ const getAllUsers = async (req, res, next) => {
   try {
     let findUsers = await User.find();
 
-    console.log(findUsers, "findUsers");
-
-    return findUsers;
+    return res.send({
+      success: true,
+      message: `User list!`,
+      data: findUsers,
+    });
   } catch (error) {
-    console.log(error.message);
+    return res.send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Users code verify API.
+const codeVerify = async (req, res, next) => {
+  try {
+    let { user_code } = req.body;
+
+    if (!user_code) throw new Error("User code is required!");
+
+    let findUser = await User.findOne({ user_id: user_code });
+
+    if (!findUser) throw new Error("Couldn't find users!");
+
+    return res.send({
+      success: true,
+      message: `User find into system!`,
+      data: findUser,
+    });
+  } catch (error) {
+    return res.send({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -76,4 +105,5 @@ module.exports = {
   addUsers,
   deleteUsers,
   getAllUsers,
+  codeVerify,
 };
