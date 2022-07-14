@@ -41,20 +41,41 @@ const io = new Server(server, {
   },
 });
 
-let { getAllUsers } = require("./controller/C_users");
+let { createRoom, getAllMessage, sendMessage } = require("./socket/chat");
 
 io.on("connection", (socket) => {
   // console.log("socket connected", socket.id);
-  socket.on("ontest", (msg) => {
-    console.log(msg, "msg");
-    io.emit("emittest", msg);
+
+  // Find or Create room users SOCKET CALL.
+  socket.on("findRoomEmit", async (data) => {
+    try {
+      let resData = await createRoom(data);
+      socket.emit("findRoomOn", resData);
+    } catch (error) {
+      console.log(error.message);
+    }
   });
 
-  // get all users.
-  socket.on("getAllUsers", async () => {
+  // Get all message SOCKET.
+  socket.on("getAllMessageEmit", async (roomId) => {
     try {
-      let resData = await getAllUsers();
-      // console.log(resData, "resData");
+      let currentRoomId = roomId;
+
+      socket.join(roomId);
+
+      let allChatList = await getAllMessage(roomId);
+
+      io.to(currentRoomId).emit("getAllMessageOn", allChatList);
+    } catch (error) {
+      console.log(error.message);
+    }
+  });
+
+  // Send message SOCKET.
+  socket.on("sendMessageEmit", async (data) => {
+    try {
+      let { newMessage, roomId } = await sendMessage(data);
+      io.to(roomId).emit("sendMessageOn", newMessage);
     } catch (error) {
       console.log(error.message);
     }

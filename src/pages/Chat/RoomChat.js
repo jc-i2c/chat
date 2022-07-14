@@ -1,97 +1,171 @@
 import React, { useEffect, useState } from "react";
 import ScrollToBottom from "react-scroll-to-bottom";
 
-const RoomChat = (props) => {
-  const { socket, room, name } = props;
+import io from "socket.io-client";
+
+import { useNavigate, useLocation } from "react-router-dom";
+
+const socket = io.connect(process.env.REACT_APP_APIURL);
+
+const RoomChat = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [roomId, setRoomId] = useState("");
   const [message, setMessage] = useState("");
+  const [chatUser, setChatUser] = useState("");
+  const [loginUser, setLoginUser] = useState("");
   const [messageList, setMessageList] = useState([]);
 
-  const sendMessage = (e) => {
-    e.preventDefault();
-    let date = new Date();
-    const hours = ((date.getHours() + 11) % 12) + 1;
-    const time = `${hours}:${
-      date.getMinutes() < 10 ? `0${date.getMinutes()}` : date.getMinutes()
-    } ${date.getHours() >= 12 ? "PM" : "AM"}`;
-    socket.emit("chatMessage", { message, name, room, time });
-    setMessage("");
-  };
-
   useEffect(() => {
-    socket.on("message", (msg) => {
-      setMessageList((prevState) => {
-        return [...prevState, msg];
+    if (location.state !== null) {
+      setChatUser(location.state.data);
+
+      var getUserData = localStorage.getItem("user_data");
+      getUserData = JSON.parse(getUserData);
+      setLoginUser(getUserData);
+    } else {
+      navigate("/chat");
+    }
+  }, []);
+
+  // Find or create room
+  useEffect(() => {
+    if (loginUser !== "" && chatUser !== "") {
+      let findRoomData = { userid: loginUser._id, otheruserid: chatUser._id };
+      socket.emit("findRoomEmit", findRoomData);
+    }
+  }, [loginUser, chatUser]);
+
+  // Get all message
+  useEffect(() => {
+    if (roomId !== "") {
+      socket.emit("getAllMessageEmit", roomId);
+    }
+  }, [roomId]);
+
+  // SOCKET effect
+  useEffect(() => {
+    socket.on("findRoomOn", function (roomId) {
+      setRoomId(roomId);
+    });
+
+    socket.on("getAllMessageOn", function (chatList) {
+      setMessageList(chatList);
+    });
+
+    socket.on("sendMessageOn", function (newChatMessage) {
+      setMessageList((prevMsgList) => {
+        if (prevMsgList.some((item) => item._id == newChatMessage._id)) {
+          return prevMsgList;
+        } else {
+          return [...prevMsgList, newChatMessage];
+        }
       });
     });
   }, [socket]);
+
+  const sendMessage = (e) => {
+    e.preventDefault();
+
+    let sendData = {
+      chat_room_id: roomId,
+      senderid: loginUser._id,
+      receiverid: chatUser._id,
+      message: message,
+    };
+
+    socket.emit("sendMessageEmit", sendData);
+    setMessage("");
+  };
 
   return (
     <>
       <div className="w-full lg:w-8/12 h-10/12 px-4">
         <div className="relative flex flex-col shadow-white min-w-0 break-words w-full mb-6 shadow-lg rounded-lg bg-white border-0">
           <div className="rounded-t mb-0 px-6 py-6">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-blueGray-500 text-lg text-left font-extrabold">{`${room} Room`}</span>
-              {/* <span className="float-right bg-green-100 w-1/4 p-3 flex justify-center">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-blueGray-500 text-lg text-left font-extrabold">
+                <div className="relative w-full mb-3 ml-2 d-flex justify-content-between align-items-center">
+                  <img
+                    src="/chat/assets/img/team-4-470x470.png"
+                    alt={"Couldn't find profile!"}
+                    style={{
+                      height: "40px",
+                      width: "40px",
+                      borderRadius: "50%",
+                    }}
+                  />
+                  <div>
+                    {`${chatUser?.name}`}
+                    <img
+                      className="w-1/6 border-none rounded-lg"
+                      src={"/chat/assets/img/green.png"}
+                      alt="..."
+                      style={{
+                        height: "10px",
+                        width: "10px",
+                        borderRadius: "50%",
+                      }}
+                    />
+                  </div>
+                </div>
+              </span>
+              <span className="text-blueGray-500 text-lg text-right font-extrabold">
                 <img
-                  alt="..."
-                  className="w-1/6 border-none rounded-lg"
-                  src={"./../../../public/assets/img/green.png"}
+                  src="/chat/assets/img/logout.svg"
+                  alt={"Couldn't find profile!"}
+                  style={{
+                    height: "35px",
+                    width: "35px",
+                  }}
+                  onClick={() => {
+                    localStorage.removeItem("user_data");
+                    navigate("/chat");
+                  }}
                 />
-                <span className="ml-3">Active Users</span>
-              </span> */}
+              </span>
             </div>
-            <hr className="mt-6 border-b-1 border-blueGray-300" />
+            <hr className="mt-1 border-b-1 border-blueGray-300" />
           </div>
           <div className="max-h-80 px-6 ">
             <div className="border-black-300 border-2">
               <ScrollToBottom className="h-80">
-                {messageList.map((messageData) => {
-                  if (messageData.joiningMessage) {
-                    console.log(messageData.joiningMessage);
-                    const message = `${messageData.joiningMessage.sender} has joined the chat`;
+                {messageList.map((messageData, index) => {
+                  if (messageData.senderid._id === loginUser._id) {
                     return (
-                      <h1 className="text-center font-extrabold text-base bg-blue-300 text-black py-2 my-3 mx-5 px-3 rounded-xl">
-                        {message}
-                      </h1>
-                    );
-                  }
-                  if (messageData.infoMessage) {
-                    const message = `${messageData.infoMessage}`;
-                    return (
-                      <h1 className="text-center font-extrabold text-base bg-blue-300 text-black py-2 my-3 mx-5 px-3 rounded-xl">
-                        {message}
-                      </h1>
-                    );
-                  }
-                  if (messageData.sender === name) {
-                    return (
-                      <div className="flex justify-end px-4 lg:px-10 py-2 pt-0">
-                        <div className="text-left mt-2 shadow-md text-green-700 shadow-green-500 px-3 py-1 w-fit max-w-sm">
+                      <div
+                        className="flex justify-end px-4 lg:px-10 py-2 pt-0"
+                        key={index}
+                      >
+                        <div className="text-left mt-0.5 shadow-md text-green-700 shadow-green-500 px-3 py-1 w-fit max-w-sm">
                           <div className="font-extrabold pb-1">
-                            {messageData.sender}
+                            {messageData.senderid.name}
                           </div>
                           <span className="text-black text-md">
-                            {messageData.text}
+                            {messageData.message}
                           </span>
                           <div className="text-xs text-right">
-                            {messageData.time}
+                            {messageData.msgtime}
                           </div>
                         </div>
                       </div>
                     );
                   } else {
                     return (
-                      <div className="flex-auto px-4 lg:px-10 py-2 pt-0">
+                      <div
+                        className="flex-auto px-4 lg:px-10 py-2 pt-0"
+                        key={index}
+                      >
                         <div className="text-left mt-2 shadow-md text-orange-700 shadow-orange-500 px-3 py-1 w-fit max-w-sm">
                           <div className="font-extrabold pb-1">
-                            {messageData.sender}
+                            {messageData.senderid.name}
                           </div>
                           <span className="text-black text-md">
-                            {messageData.text}
+                            {messageData.message}
                           </span>
                           <div className="text-xs text-right">
-                            {messageData.time}
+                            {messageData.msgtime}
                           </div>
                         </div>
                       </div>

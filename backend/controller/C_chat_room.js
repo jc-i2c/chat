@@ -1,7 +1,7 @@
 const ChatRoom = require("../models/M_chat_room");
 const { dateTime } = require("../utils/date_time");
 
-// Create room users API.
+// Find or Create room users API.
 const createRoom = async (req, res, next) => {
   try {
     let { userid, otheruserid } = req.body;

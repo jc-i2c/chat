@@ -1,12 +1,9 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import io from "socket.io-client";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
-
-const socket = io.connect(process.env.REACT_APP_APIURL);
 
 const Chat = () => {
   const navigate = useNavigate();
@@ -42,11 +39,13 @@ const Chat = () => {
     axios
       .post(`${process.env.REACT_APP_APIURL}/users/adduser`, payload)
       .then((data) => {
-        console.log(data.data, "data.data");
         if (data.data.success) {
           toast.success(data.data.message);
+          navigate("/login");
         } else {
           toast.error(data.data.message);
+          setName("");
+          setEmail("");
         }
       })
       .catch((err) => {

@@ -1,41 +1,47 @@
+import axios from "axios";
+
 import React, { useEffect, useState } from "react";
-import io from "socket.io-client";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const socket = io.connect(process.env.REACT_APP_APIURL);
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState({});
+  const navigate = useNavigate();
 
-  const [userChat, setUserChat] = useState(false);
+  const [userCode, setUserCode] = useState("");
+  const [error, setError] = useState({});
 
   useEffect(() => {
     setError({});
-  }, [name]);
+  }, [userCode]);
 
   const submitFormData = (e) => {
-    setError({});
     e.preventDefault();
+    setError({});
 
-    if (!name) {
-      setError({ ...error, wrongName: true });
+    if (!/^[0-9]{1,6}$/.test(userCode) || userCode === null) {
+      setError({ wrongUserCode: true });
       return;
+    } else {
+      axios
+        .post(`${process.env.REACT_APP_APIURL}/users/codeverify`, {
+          user_code: userCode,
+        })
+        .then((data) => {
+          if (data.data.success) {
+            localStorage.setItem("user_data", JSON.stringify(data.data.data));
+            toast.success(data.data.message);
+            navigate("/userlist");
+          } else {
+            toast.error(data.data.message);
+          }
+        })
+        .catch((err) => {
+          console.log(err.response);
+        });
     }
-
-    let regex = new RegExp("[a-z0-9]+@[a-z]+.[a-z]{2,3}");
-    if (!regex.test(email)) {
-      setError({ wrongEmail: true });
-      return;
-    }
-
-    const payload = {
-      email_address: email,
-      name: name,
-    };
   };
 
   return (
@@ -72,19 +78,23 @@ const Login = () => {
                               className="block uppercase text-blueGray-600 text-xs font-bold mb-2"
                               htmlFor="grid-password"
                             >
-                              Code
+                              User Code
                             </label>
                             <input
                               type="text"
-                              value={name}
+                              value={userCode}
+                              maxLength={6}
                               onChange={(e) => {
-                                setName(e.target.value);
+                                var numberReg = /^[0-9]*$/;
+                                if (numberReg.test(e.target.value)) {
+                                  setUserCode(e.target.value);
+                                }
                               }}
                               className="border-0 px-3 py-3 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow focus:outline-none focus:ring w-full ease-linear transition-all duration-150"
-                              placeholder="Enter your code"
+                              placeholder="Enter your user code"
                             />
                             <p className="my-2 text-sm text-red-700 px-2">
-                              {error.wrongName && "Please enter name"}
+                              {error.wrongUserCode && "Please enter valid code"}
                             </p>
                           </div>
 
@@ -96,6 +106,14 @@ const Login = () => {
                                 type="submit"
                               >
                                 submit
+                              </button>
+                              <button
+                                className="text-white active:bg-blueGray-600 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 w-full ease-linear transition-all duration-150"
+                                style={{ backgroundColor: "#1E293B" }}
+                                type="submit"
+                                onClick={() => navigate(-1)}
+                              >
+                                Back
                               </button>
                             </div>
                           </div>
