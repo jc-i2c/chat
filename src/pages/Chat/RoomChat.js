@@ -18,8 +18,11 @@ const RoomChat = () => {
   const [messageList, setMessageList] = useState([]);
 
   useEffect(() => {
-    if (location.state !== null) {
-      setChatUser(location.state.data);
+    let propsObj = new Object();
+    propsObj = location.state.data;
+
+    if (Object.keys(propsObj).length > 0) {
+      setChatUser(propsObj);
 
       var getUserData = localStorage.getItem("user_data");
       getUserData = JSON.parse(getUserData);
@@ -77,6 +80,20 @@ const RoomChat = () => {
 
     socket.emit("sendMessageEmit", sendData);
     setMessage("");
+  };
+
+  const fileOpen = () => {
+    return (
+      <input
+        type="file"
+        id="file"
+        style="display: none"
+        name="image"
+        accept="image/gif,image/jpeg,image/jpg,image/png"
+        multiple=""
+        data-original-title="upload photos"
+      />
+    );
   };
 
   return (
@@ -177,7 +194,7 @@ const RoomChat = () => {
           </div>
           <form className="my-2 mt-4 px-4 lg:px-6" onSubmit={sendMessage}>
             <div className="flex space-x-3">
-              <div className="relative w-10/12 mb-3">
+              <div className="relative w-10/12 mb-3 d-flex justify-content-between align-items-center">
                 <input
                   type="text"
                   value={message}
@@ -185,6 +202,17 @@ const RoomChat = () => {
                   onChange={(e) => setMessage(e.target.value)}
                   className="px-3 py-3 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow-md outline-none focus:outline-none  w-full ease-linear transition-all duration-150"
                   placeholder="Tpye message here ..."
+                />
+                <img
+                  src="/chat/assets/img/image.png"
+                  alt={"Couldn't find images!"}
+                  style={{
+                    height: "35px",
+                    width: "35px",
+                  }}
+                  onClick={() => {
+                    fileOpen();
+                  }}
                 />
               </div>
               <div className="text-center w-2/12">

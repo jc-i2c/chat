@@ -41,7 +41,7 @@ const Chat = () => {
       .then((data) => {
         if (data.data.success) {
           toast.success(data.data.message);
-          navigate("/login");
+          // navigate("/login");
         } else {
           toast.error(data.data.message);
           setName("");
